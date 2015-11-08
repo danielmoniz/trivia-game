@@ -2,9 +2,16 @@
 import requests
 import re
 
-info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles=Albert%20Einstein&rvsection=0&format=json")
+#info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles=Albert%20Einstein&rvsection=0&format=json")
+info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles=shakira&rvsection=0&format=json")
 data = info.json()
-data_box = data['query']['pages']['736']['revisions'][0]['*']
+data_box = data['query']['pages']
+for key, value in data_box.iteritems():
+    print key, value
+    data_box = value
+    break
+
+data_box = data_box['revisions'][0]['*']
 
 search = ['birth_date', 'death_date', 'residence']
 
@@ -20,7 +27,10 @@ def search_text(text, term):
 
 def parse_date(value):
     value_list = value.split('|')
-    final_value = value_list[2]
+    try:
+        final_value = value_list[2]
+    except IndexError:
+        return
     return final_value
 
 
@@ -40,7 +50,7 @@ for term in search:
     print '-'*30
     print term
     value = search_text(data_box, term)
-    print value
+    #print value
     parse_function = search_map[term]
     print parse_function(value)
 
