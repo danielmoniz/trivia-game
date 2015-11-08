@@ -1,5 +1,6 @@
 
 import requests
+import locale
 
 
 def query_wikipedia(entity):
@@ -33,16 +34,31 @@ def parse_date(value):
     return
 
 
+def parse_population(value):
+    value_list = value.split('<')
+    raw_population = value_list[0].strip()
+
+    try:
+        population = int(raw_population)
+        locale.setlocale(locale.LC_ALL, 'en_US')
+        raw_population = locale.format("%d", population, grouping=True)
+    except ValueError:
+        pass
+    if not raw_population:
+        return
+    return raw_population
+
+
 search_map = {
     'birth_date': parse_date,
     'death_date': parse_date,
+    'population_total': parse_population,
 }
 
 def search_terms(text, search):
     answers = {}
     for term in search:
         value = search_text(text, term)
-        #print value
         parse_function = search_map[term]
         answer = parse_function(value)
 
@@ -52,26 +68,39 @@ def search_terms(text, search):
     return answers
 
 
-search = ['birth_date', 'death_date']
+search_keys = ['birth_date', 'death_date', 'population_total']
 questions = {
         'birth_date': 'In what year was {0} born?',
         'death_date': 'In what year did {0} die?',
+        'population_total': 'What is the population of the city proper of {0} (as of 2015)?',
         }
 answers = {}
 
-with open('people.txt', 'r') as f:
-    people = f.readlines()
+files = ('people.txt', 'cities.txt')
+files = {
+    'people.txt': {
+        'search_keys': ['birth_date', 'death_date'],
+    },
+    'cities.txt': {
+        'search_keys': ['population_total'],
+    }
+}
 
-for person in people:
-    person = person.strip()
 
-    text = query_wikipedia(person)
-    answers[person] = search_terms(text, search)
+for file_name, info in files.iteritems():
+    with open(file_name, 'r') as f:
+        entities = f.readlines()
 
-print answers
+    for entity in entities:
+        entity = entity.strip()
 
-for entity, answers in answers.iteritems():
-    for search, answer in answers.iteritems():
+        text = query_wikipedia(entity)
+        if text:
+            answers[entity] = search_terms(text, info['search_keys'])
+
+
+for entity, answer_set in answers.iteritems():
+    for search, answer in answer_set.iteritems():
         print questions[search].format(entity)
         print answer
 
