@@ -2,36 +2,34 @@
 import requests
 import re
 
-#info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles=Albert%20Einstein&rvsection=0&format=json")
-info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles=shakira&rvsection=0&format=json")
-data = info.json()
-data_box = data['query']['pages']
-for key, value in data_box.iteritems():
-    print key, value
-    data_box = value
-    break
+def query_wikipedia(entity):
+    info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles={0}&rvsection=0&format=json".format(entity))
+    data = info.json()
+    data_box = data['query']['pages']
+    for key, value in data_box.iteritems():
+        data_box = value
+        break
 
-data_box = data_box['revisions'][0]['*']
-
-search = ['birth_date', 'death_date', 'residence']
+    data_box = data_box['revisions'][0]['*']
+    return data_box
 
 def search_text(text, term):
-    position = data_box.find(term)
-    equals_position = data_box[position:].find('=')
-    end_position = data_box[position:].find('\n')
+    position = text.find(term)
+    equals_position = text[position:].find('=')
+    end_position = text[position:].find('\n')
 
-    value = data_box[position + equals_position + 1 : position + end_position]
+    value = text[position + equals_position + 1 : position + end_position]
     value = value.strip()
     return value
 
 
 def parse_date(value):
     value_list = value.split('|')
-    try:
-        final_value = value_list[2]
-    except IndexError:
-        return
-    return final_value
+    for item in value_list:
+        try:
+            return int(item)
+        except (ValueError, UnicodeEncodeError):
+            return
 
 
 def parse_location(value):
@@ -46,11 +44,27 @@ search_map = {
     'residence': parse_location,
 }
 
-for term in search:
-    print '-'*30
-    print term
-    value = search_text(data_box, term)
-    #print value
-    parse_function = search_map[term]
-    print parse_function(value)
+def search_terms(text, search):
+    for term in search:
+        print '-'*30
+        print term
+        value = search_text(text, term)
+        #print value
+        parse_function = search_map[term]
+        print parse_function(value)
+
+
+#people = None
+
+search = ['birth_date', 'death_date', 'residence']
+
+with open('people.txt', 'r') as f:
+    people = f.readlines()
+
+for person in people:
+    person = person.strip()
+
+    print person
+    text = query_wikipedia(person)
+    search_terms(text, search)
 
