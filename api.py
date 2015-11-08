@@ -1,6 +1,6 @@
 
 import requests
-import re
+
 
 def query_wikipedia(entity):
     info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles={0}&rvsection=0&format=json".format(entity))
@@ -29,34 +29,35 @@ def parse_date(value):
         try:
             return int(item)
         except (ValueError, UnicodeEncodeError):
-            return
-
-
-def parse_location(value):
-    value_list = value.split(',')
-    final_value = value_list[0]
-    return final_value
+            pass
+    return
 
 
 search_map = {
     'birth_date': parse_date,
     'death_date': parse_date,
-    'residence': parse_location,
 }
 
 def search_terms(text, search):
+    answers = {}
     for term in search:
-        print '-'*30
-        print term
         value = search_text(text, term)
         #print value
         parse_function = search_map[term]
-        print parse_function(value)
+        answer = parse_function(value)
+
+        if answer is not None:
+            answers[term] = answer
+
+    return answers
 
 
-#people = None
-
-search = ['birth_date', 'death_date', 'residence']
+search = ['birth_date', 'death_date']
+questions = {
+        'birth_date': 'In what year was {0} born?',
+        'death_date': 'In what year did {0} die?',
+        }
+answers = {}
 
 with open('people.txt', 'r') as f:
     people = f.readlines()
@@ -64,7 +65,15 @@ with open('people.txt', 'r') as f:
 for person in people:
     person = person.strip()
 
-    print person
     text = query_wikipedia(person)
-    search_terms(text, search)
+    answers[person] = search_terms(text, search)
+
+print answers
+
+for entity, answers in answers.iteritems():
+    for search, answer in answers.iteritems():
+        print questions[search].format(entity)
+        print answer
+
+
 
