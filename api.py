@@ -2,8 +2,10 @@
 import requests
 import locale
 
+bad_searches = []
 
 def query_wikipedia(entity):
+    print entity
     info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles={0}&rvsection=0&format=json".format(entity))
     data = info.json()
     data_box = data['query']['pages']
@@ -11,7 +13,11 @@ def query_wikipedia(entity):
         data_box = value
         break
 
-    data_box = data_box['revisions'][0]['*']
+    try:
+        data_box = data_box['revisions'][0]['*']
+    except KeyError:
+        bad_searches.append(entity)
+        return
     return data_box
 
 def search_text(text, term):
@@ -29,7 +35,7 @@ def search_text(text, term):
     return value
 
 
-def parse_date(value):
+def parse_pipes(value):
     value_list = value.split('|')
     for item in value_list:
         try:
@@ -84,22 +90,33 @@ questions = {
         'death_date': 'In what year did {0} die?',
         'population_total': 'What is the population of the city proper of {0} (as of 2015)?',
         'elevation_m': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
-        }
+        'architechtural': 'What is the architectural height (in metres) of the {0} (as of 2015)?',
+        'architectural': 'What is the architectural height (in metres) of the {0} (as of 2015)?',
+        'antenna_spire': 'What is the antenna spire height (in metres) of the {0} (as of 2015)?',
+}
 
 files = {
+    'freestanding_structures.csv': {
+        'search_keys': ['architechtural', 'architectural', 'antenna_spire'],
+    },
+}
+"""
     'people.txt': {
         'search_keys': ['birth_date', 'death_date'],
     },
     'cities.txt': {
         'search_keys': ['population_total', 'elevation_m'],
-    }
-}
+    },
+"""
 
 search_map = {
-    'birth_date': parse_date,
-    'death_date': parse_date,
+    'birth_date': parse_pipes,
+    'death_date': parse_pipes,
     'population_total': parse_population,
     'elevation_m': parse_elevation,
+    'architechtural': parse_pipes,
+    'architectural': parse_pipes,
+    'antenna_spire': parse_pipes,
 }
 
 answers = {}
@@ -118,13 +135,19 @@ for file_name, info in files.iteritems():
             answers[entity] = search_terms(text, info['search_keys'])
 
 
-print answers
+
+#print answers
 
 
 for entity, answer_set in answers.iteritems():
     for search, answer in answer_set.iteritems():
         print questions[search].format(entity)
         print answer
+
+
+print '\nBad searches: --------------'
+for search in bad_searches:
+    print search
 
 
 
