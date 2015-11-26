@@ -15,11 +15,16 @@ def query_wikipedia(entity):
     return data_box
 
 def search_text(text, term):
-    position = text.find(term)
-    equals_position = text[position:].find('=')
-    end_position = text[position:].find('\n')
+    """
+    Find the value of a given key in Wikipedia text.
+    Does this by counting characters until key is found, then grabbing data 
+    after the equals and cleaning up.
+    """
+    term_position = text.find(term)
+    equals_position = text[term_position:].find('=')
+    end_position = text[term_position:].find('\n')
 
-    value = text[position + equals_position + 1 : position + end_position]
+    value = text[term_position + equals_position + 1 : term_position + end_position]
     value = value.strip()
     return value
 
@@ -45,16 +50,17 @@ def parse_large_number(raw_value):
     return raw_population
 
 
-def parse_population(value):
+def parse_raw_data(value):
     value_list = value.split('<')
-    raw_population = value_list[0].strip()
-    return parse_large_number(raw_population)
+    return value_list[0].strip()
+
+
+def parse_population(value):
+    return parse_large_number(value)
 
 
 def parse_elevation(value):
-    elevation = parse_population(value)
-    if not elevation:
-        return
+    elevation = parse_large_number(value)
     return elevation + 'm'
 
 
@@ -63,10 +69,12 @@ def search_terms(text, search):
     for term in search:
         value = search_text(text, term)
         parse_function = search_map[term]
-        answer = parse_function(value)
+        clean_data = parse_raw_data(value)
+        if clean_data:
+            answer = parse_function(clean_data)
 
-        if answer is not None:
-            answers[term] = answer
+            if answer is not None:
+                answers[term] = answer
 
     return answers
 
