@@ -34,26 +34,29 @@ def parse_date(value):
     return
 
 
-def parse_population(value):
-    value_list = value.split('<')
-    raw_population = value_list[0].strip()
-
+def parse_large_number(raw_value):
     try:
-        population = int(raw_population)
-        locale.setlocale(locale.LC_ALL, 'en_US')
-        raw_population = locale.format("%d", population, grouping=True)
+        population = int(raw_value)
     except ValueError:
-        pass
-    if not raw_population:
-        return
+        return raw_value
+
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    raw_population = locale.format("%d", population, grouping=True)
     return raw_population
 
 
-search_map = {
-    'birth_date': parse_date,
-    'death_date': parse_date,
-    'population_total': parse_population,
-}
+def parse_population(value):
+    value_list = value.split('<')
+    raw_population = value_list[0].strip()
+    return parse_large_number(raw_population)
+
+
+def parse_elevation(value):
+    elevation = parse_population(value)
+    if not elevation:
+        return
+    return elevation + 'm'
+
 
 def search_terms(text, search):
     answers = {}
@@ -68,23 +71,30 @@ def search_terms(text, search):
     return answers
 
 
-search_keys = ['birth_date', 'death_date', 'population_total']
 questions = {
         'birth_date': 'In what year was {0} born?',
         'death_date': 'In what year did {0} die?',
         'population_total': 'What is the population of the city proper of {0} (as of 2015)?',
+        'elevation_m': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
         }
-answers = {}
 
-files = ('people.txt', 'cities.txt')
 files = {
     'people.txt': {
         'search_keys': ['birth_date', 'death_date'],
     },
     'cities.txt': {
-        'search_keys': ['population_total'],
+        'search_keys': ['population_total', 'elevation_m'],
     }
 }
+
+search_map = {
+    'birth_date': parse_date,
+    'death_date': parse_date,
+    'population_total': parse_population,
+    'elevation_m': parse_elevation,
+}
+
+answers = {}
 
 
 for file_name, info in files.iteritems():
@@ -93,10 +103,14 @@ for file_name, info in files.iteritems():
 
     for entity in entities:
         entity = entity.strip()
+        searchable_entity = entity.split(',')[0].strip()
 
-        text = query_wikipedia(entity)
+        text = query_wikipedia(searchable_entity)
         if text:
             answers[entity] = search_terms(text, info['search_keys'])
+
+
+print answers
 
 
 for entity, answer_set in answers.iteritems():

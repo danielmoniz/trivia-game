@@ -1,21 +1,21 @@
-Shanghai
-Karachi
-Lagos
-Delhi
-Istanbul
-Tokyo
-Guangzhou
-Mumbai
-Moscow
-São Paulo
-Beijing
-Shenzhen
-Seoul
-Lahore
-Jakarta
-Kinshasa
-Tianjin
-Cairo
-Mexico City
-Lima
-New York City
+Shanghai, China
+Karachi, Pakistan
+Lagos, Nigeria
+Delhi, India
+Istanbul, Turkey
+Tokyo, Japan
+Guangzhou, China
+Mumbai, India
+Moscow, Russia
+São Paulo, Brazil
+Beijing, China
+Shenzhen, China
+Seoul, Korea
+Lahore, Pakistan
+Jakarta, Indonesia
+Kinshasa, Democratic Republic of the Congo
+Tianjin, China
+Cairo, Egypt
+Mexico City, Mexico
+Lima, Peru
+New York City, USA
