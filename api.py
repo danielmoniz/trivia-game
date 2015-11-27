@@ -5,7 +5,12 @@ import locale
 bad_searches = []
 
 def query_wikipedia(entity):
-    print entity
+    """
+    Queries Wikipedia for an articke about 'entity'.
+    Returns the article's first section of text, including (most importantly)
+    the data box on the right.
+    """
+    print entity + ' -----'
     info = requests.get("https://en.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&titles={0}&rvsection=0&format=json".format(entity))
     data = info.json()
     data_box = data['query']['pages']
@@ -36,118 +41,153 @@ def search_text(text, term):
 
 
 def parse_pipes(value):
+    """
+    Parses text separated by pipes. Attempts to return the most meaningful data
+    possible, prioritizing numbers and order.
+    """
     value_list = value.split('|')
+    return_value = None
     for item in value_list:
         try:
-            return int(item)
+            return_value = float(item.replace(',', ''))
+            return_value = int(return_value)
         except (ValueError, UnicodeEncodeError):
             pass
-    return
+
+        if return_value:
+            return return_value
 
 
-def parse_large_number(raw_value):
+def prettify_number(raw_value):
+    """Makes a number pretty by (say) adding commas.
+    """
     try:
-        population = int(raw_value)
+        number = int(raw_value)
     except ValueError:
         return raw_value
 
     locale.setlocale(locale.LC_ALL, 'en_US')
-    raw_population = locale.format("%d", population, grouping=True)
-    return raw_population
+    raw_number = locale.format("%d", number, grouping=True)
+    return raw_number
 
 
 def parse_raw_data(value):
+    """The basic parsing performed on all data.
+    """
     value_list = value.split('<')
     return value_list[0].strip()
 
 
 def parse_population(value):
-    return parse_large_number(value)
+    return prettify_number(value)
+
+
+def metres(value):
+    return "{0}m".format(value)
 
 
 def parse_elevation(value):
-    elevation = parse_large_number(value)
+    elevation = prettify_number(value)
     return elevation + 'm'
 
 
-def search_terms(text, search):
-    answers = {}
-    for term in search:
-        value = search_text(text, term)
-        parse_function = search_map[term]
-        clean_data = parse_raw_data(value)
-        if clean_data:
-            answer = parse_function(clean_data)
+def parse_answer(raw_answer, question_info):
+    parse_function = question_info['parse_function']
+    clean_data = parse_raw_data(raw_answer)
+    if clean_data:
+        answer = parse_function(clean_data)
+        if answer and 'unit' in question_info:
+            answer = question_info['unit'](answer)
 
-            if answer is not None:
-                answers[term] = answer
-
-    return answers
+        return answer
 
 
-questions = {
-        'birth_date': 'In what year was {0} born?',
-        'death_date': 'In what year did {0} die?',
-        'population_total': 'What is the population of the city proper of {0} (as of 2015)?',
-        'elevation_m': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
-        'architechtural': 'What is the architectural height (in metres) of the {0} (as of 2015)?',
-        'architectural': 'What is the architectural height (in metres) of the {0} (as of 2015)?',
-        'antenna_spire': 'What is the antenna spire height (in metres) of the {0} (as of 2015)?',
-}
+def print_card(question_data, entity):
+    print question_data['question'].format(entity)
+    print question_data['answer']
 
-files = {
-    'freestanding_structures.csv': {
-        'search_keys': ['architechtural', 'architectural', 'antenna_spire'],
+
+categories = {
+    'people': {
+        'file': 'people.txt',
+        'questions': {
+            'birth_date': {
+                'question': 'In what year was {0} born?',
+                'parse_function': parse_pipes,
+            },
+            'death_date': {
+                'question': 'In what year did {0} die?',
+                'parse_function': parse_pipes,
+            },
+        },
     },
-}
-"""
-    'people.txt': {
-        'search_keys': ['birth_date', 'death_date'],
-    },
-    'cities.txt': {
-        'search_keys': ['population_total', 'elevation_m'],
-    },
-"""
 
-search_map = {
-    'birth_date': parse_pipes,
-    'death_date': parse_pipes,
-    'population_total': parse_population,
-    'elevation_m': parse_elevation,
-    'architechtural': parse_pipes,
-    'architectural': parse_pipes,
-    'antenna_spire': parse_pipes,
+    'cities': {
+        'file': 'cities.txt',
+        'questions': {
+            'population_total': {
+                'question': 'What is the population of the city proper of {0} (as of 2015)?',
+                'parse_function': parse_population,
+            },
+            'elevation_m': {
+                'question': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
+                'parse_function': parse_elevation,
+            },
+        },
+    },
+
+    'freestanding_structures': {
+        'file': 'freestanding_structures.csv',
+        'questions': {
+            'architectural': {
+                'question': 'What is the architectural height (in metres) of the {0}?',
+                'parse_function': parse_pipes,
+                'unit': metres,
+            },
+            'architechtural': {
+                'question': 'What is the architectural height (in metres) of the {0}?',
+                'parse_function': parse_pipes,
+                'unit': metres,
+            },
+            'antenna_spire': {
+                'question': 'What is the antenna spire height (in metres) of the {0}?',
+                'parse_function': parse_pipes,
+                'unit': metres,
+            },
+        },
+    },
 }
 
 answers = {}
 
-
-for file_name, info in files.iteritems():
-    with open(file_name, 'r') as f:
+num_questions = 0
+for category, category_info in categories.iteritems():
+    with open(category_info['file'], 'r') as f:
         entities = f.readlines()
 
     for entity in entities:
         entity = entity.strip()
+        # Use only the first comma-separated chunk of the entity to search 
         searchable_entity = entity.split(',')[0].strip()
 
         text = query_wikipedia(searchable_entity)
-        if text:
-            answers[entity] = search_terms(text, info['search_keys'])
-
-
-
-#print answers
-
-
-for entity, answer_set in answers.iteritems():
-    for search, answer in answer_set.iteritems():
-        print questions[search].format(entity)
-        print answer
+        if not text:
+            continue
+        for search_term, question_data in category_info['questions'].iteritems():
+            raw_answer = search_text(text, search_term)
+            answer = parse_answer(raw_answer, question_data)
+            if answer:
+                question_data['answer'] = answer
+                print_card(question_data, entity)
+                num_questions += 1
 
 
 print '\nBad searches: --------------'
 for search in bad_searches:
     print search
+
+print '\nNumber of questions:'
+print num_questions
 
 
 
