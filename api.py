@@ -2,7 +2,9 @@
 import requests
 import locale
 
+total_questions = 0
 bad_searches = []
+empty_entities = []
 
 def query_wikipedia(entity):
     """
@@ -58,19 +60,6 @@ def parse_pipes(value):
             return return_value
 
 
-def prettify_number(raw_value):
-    """Makes a number pretty by (say) adding commas.
-    """
-    try:
-        number = int(raw_value)
-    except ValueError:
-        return raw_value
-
-    locale.setlocale(locale.LC_ALL, 'en_US')
-    raw_number = locale.format("%d", number, grouping=True)
-    return raw_number
-
-
 def parse_raw_data(value):
     """The basic parsing performed on all data.
     """
@@ -102,9 +91,35 @@ def parse_answer(raw_answer, question_info):
         return answer
 
 
+def prettify_number(raw_value):
+    """Makes a number pretty by (say) adding commas.
+    """
+    try:
+        number = int(raw_value)
+    except ValueError:
+        return raw_value
+
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    raw_number = locale.format("%d", number, grouping=True)
+    return raw_number
+
+
 def print_card(question_data, entity):
     print question_data['question'].format(entity)
     print question_data['answer']
+
+
+def generate_answers(text, category_info, entity):
+    num_entity_questions = 0
+    for search_term, question_data in category_info['questions'].iteritems():
+        raw_answer = search_text(text, search_term)
+        answer = parse_answer(raw_answer, question_data)
+        if not answer:
+            continue
+        question_data['answer'] = answer
+        print_card(question_data, entity)
+        num_entity_questions += 1
+    return num_entity_questions
 
 
 categories = {
@@ -129,6 +144,10 @@ categories = {
                 'question': 'What is the population of the city proper of {0} (as of 2015)?',
                 'parse_function': parse_population,
             },
+            'pop_latest': {
+                'question': 'What is the population of the city proper of {0} (as of 2015)?',
+                'parse_function': parse_population,
+            },
             'elevation_m': {
                 'question': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
                 'parse_function': parse_elevation,
@@ -140,6 +159,7 @@ categories = {
         'file': 'freestanding_structures.csv',
         'questions': {
             'architectural': {
+                'other_names': ['architechtural'],
                 'question': 'What is the architectural height (in metres) of the {0}?',
                 'parse_function': parse_pipes,
                 'unit': metres,
@@ -158,9 +178,9 @@ categories = {
     },
 }
 
+
 answers = {}
 
-num_questions = 0
 for category, category_info in categories.iteritems():
     with open(category_info['file'], 'r') as f:
         entities = f.readlines()
@@ -173,21 +193,23 @@ for category, category_info in categories.iteritems():
         text = query_wikipedia(searchable_entity)
         if not text:
             continue
-        for search_term, question_data in category_info['questions'].iteritems():
-            raw_answer = search_text(text, search_term)
-            answer = parse_answer(raw_answer, question_data)
-            if answer:
-                question_data['answer'] = answer
-                print_card(question_data, entity)
-                num_questions += 1
+        num_entity_questions = generate_answers(text, category_info, entity)
+        total_questions += num_entity_questions
+
+        if not num_entity_questions:
+            empty_entities.append(entity)
 
 
 print '\nBad searches: --------------'
 for search in bad_searches:
     print search
 
+print '\nEmpty entities: --------------'
+for entity in empty_entities:
+    print entity
+
 print '\nNumber of questions:'
-print num_questions
+print total_questions
 
 
 
