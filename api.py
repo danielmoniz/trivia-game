@@ -46,6 +46,14 @@ def parse_pipes(value):
     possible, prioritizing numbers and order.
     """
     value_list = value.split('|')
+    try:
+        if value_list[2]=="ft":
+            print "***********************************---****"
+	    value_list[1] = int(value_list[1]) * 0.3048
+            value_list[1] = unicode(value_list[1])
+    except:
+        print "fail"
+    print value_list
     return_value = None
     for item in value_list:
         try:
