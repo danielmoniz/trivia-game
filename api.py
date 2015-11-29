@@ -43,11 +43,18 @@ def search_text(text, term):
 
 
 def parse_pipes(value):
+    feet_to_meters = 0.3048
     """
     Parses text separated by pipes. Attempts to return the most meaningful data
     possible, prioritizing numbers and order.
     """
     value_list = value.split('|')
+    try:
+        if value_list[2]=="ft":
+	    value_list[1] = int(value_list[1]) * feet_to_meters
+            value_list[1] = unicode(value_list[1])
+    except IndexError:
+        pass
     return_value = None
     for item in value_list:
         try:
