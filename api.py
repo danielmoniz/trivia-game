@@ -2,6 +2,8 @@
 import requests
 import locale
 
+import questions
+
 total_questions = 0
 bad_searches = []
 empty_entities = []
@@ -91,9 +93,10 @@ def parse_answer(raw_answer, question_info):
     parse_function = question_info['parse_function']
     clean_data = parse_raw_data(raw_answer)
     if clean_data:
-        answer = parse_function(clean_data)
+        answer = globals()[parse_function](clean_data)
         if answer and 'unit' in question_info:
-            answer = question_info['unit'](answer)
+            unit_function = question_info['unit']
+            answer = globals()[unit_function](answer)
 
         return answer
 
@@ -129,66 +132,9 @@ def generate_answers(text, category_info, entity):
     return num_entity_questions
 
 
-categories = {
-    'people': {
-        'file': 'people.txt',
-        'questions': {
-            'birth_date': {
-                'question': 'In what year was {0} born?',
-                'parse_function': parse_pipes,
-            },
-            'death_date': {
-                'question': 'In what year did {0} die?',
-                'parse_function': parse_pipes,
-            },
-        },
-    },
-
-    'cities': {
-        'file': 'cities.txt',
-        'questions': {
-            'population_total': {
-                'question': 'What is the population of the city proper of {0} (as of 2015)?',
-                'parse_function': parse_population,
-            },
-            'pop_latest': {
-                'question': 'What is the population of the city proper of {0} (as of 2015)?',
-                'parse_function': parse_population,
-            },
-            'elevation_m': {
-                'question': 'What is the elevation (in metres) of the city proper of {0} (as of 2015)?',
-                'parse_function': parse_elevation,
-            },
-        },
-    },
-
-    'freestanding_structures': {
-        'file': 'freestanding_structures.csv',
-        'questions': {
-            'architectural': {
-                'other_names': ['architechtural'],
-                'question': 'What is the architectural height (in metres) of the {0}?',
-                'parse_function': parse_pipes,
-                'unit': metres,
-            },
-            'architechtural': {
-                'question': 'What is the architectural height (in metres) of the {0}?',
-                'parse_function': parse_pipes,
-                'unit': metres,
-            },
-            'antenna_spire': {
-                'question': 'What is the antenna spire height (in metres) of the {0}?',
-                'parse_function': parse_pipes,
-                'unit': metres,
-            },
-        },
-    },
-}
-
-
 answers = {}
 
-for category, category_info in categories.iteritems():
+for category, category_info in questions.categories.iteritems():
     with open(category_info['file'], 'r') as f:
         entities = f.readlines()
 
