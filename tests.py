@@ -11,6 +11,10 @@ class APITest(unittest.TestCase):
         self.assertEqual(api.metres(543), '543m')
         self.assertEqual(api.metres('543m'), '543m')
 
+    def test_partial_date_parsing(self):
+        garbage = '1973'
+        date = api.parse_date(garbage)
+        self.assertEqual(date.year, 1973)
 
     def test_parse_date(self):
         garbage = 'dgh'
@@ -58,10 +62,53 @@ class APITest(unittest.TestCase):
         self.assertEqual(date.day, 0)
         '''
 
-    def assert_date(self, date, year, month, day):
+    def test_era_date_parsing(self):
+        garbage = '632|6|8|570 CE'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 632, 6, 8)
+
+        garbage = '632|6|8|570 AD'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 632, 6, 8)
+
+        garbage = '{{death date and age|632|6|8|570||}} CE'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 632, 6, 8)
+
+        garbage = '{{death date and age|632|6|8|570||}} AD'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 632, 6, 8)
+
+        garbage = '{{c.|570}} CE'
+        date = api.parse_date(garbage, test=True)
+        self.assertEqual(date.year, 570)
+
+        garbage = '1400 BC'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 1400, None, None, 'BCE')
+
+        garbage = '13 July 100 BC'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 100, 7, 13, 'BCE')
+
+        garbage = '{{c.|570}} BCE'
+        date = api.parse_date(garbage, test=True)
+        self.assert_date(date, 570, None, None, 'BCE')
+
+        garbage = '632|6|8|570 BC'
+        date = api.parse_date(garbage)
+        self.assert_date(date, 632, 6, 8, 'BCE')
+
+
+    def assert_date(self, date, year, month, day, era='CE'):
         self.assertEqual(date.year, year)
-        self.assertEqual(date.month, month)
-        self.assertEqual(date.day, day)
+        if month:
+            self.assertEqual(date.month, month)
+        if day:
+            self.assertEqual(date.day, day)
+        self.assertEqual(date.era, era)
+        print date
+
 
 
 

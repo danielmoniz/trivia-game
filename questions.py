@@ -15,6 +15,10 @@ categories = {
                 'question': 'In what year did {0} die?',
                 'parse_function': 'parse_pipes',
             },
+            'term_start': {
+                'question': 'When did {0} start their first term?',
+                'parse_function': 'parse_pipes',
+            },
         },
     },
 

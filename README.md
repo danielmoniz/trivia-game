@@ -8,8 +8,8 @@ Notes
 ==========
 
 * This project is in early alpha at best.
-* The program may fail to retrieve answers for every entity. This is because of
-  a lack of consistency on the part of Wikipedia and must be accounted for.
+* The program may fail to retrieve answers for some entities. This is because
+  of a lack of consistency on the part of Wikipedia and must be accounted for.
 
 Setup
 ============

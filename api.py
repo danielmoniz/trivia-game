@@ -7,6 +7,7 @@ import datetime
 import dateparser
 
 import questions
+import date
 
 bad_searches = []
 empty_entities = []
@@ -47,21 +48,48 @@ def search_text(text, term):
     return value
 
 
+def get_era(garbage):
+    """
+    Parses a string of text and determines the relevant era (BCE or CE).
+    Uses a very naive approach. Will likely cause issues, for example, when a
+    person is born BCE and dies CE.
+    """
+    era = 'CE'
+    if 'AD' in garbage or 'CE' in garbage:
+        era = 'CE'
+    if 'BC' in garbage or 'BCE' in garbage:
+        era = 'BCE'
+    return era
+
+def remove_era_text(garbage):
+    garbage = garbage.replace('BCE', '').replace('BC', '').replace('CE', '').replace('AD', '').strip()
+    return garbage
+
 def clean_raw_date_text(garbage):
-    garbage = garbage.replace('{', '').strip()
-    garbage = garbage.replace('}', '').strip()
+    garbage = garbage.replace('{', '|').strip()
+    garbage = garbage.replace('}', '|').strip()
     # remove certain types of parentheses and their contents
     garbage = re.sub(r'\([^)]*\)', '|', garbage).strip()
     garbage = re.sub(r'\<[^>]*\>', '|', garbage).strip()
     return garbage
 
-def parse_date(garbage):
+def parse_date(garbage, test=False):
+    """
+    Takes text as input that is potentially full of useless information.
+    Parses the text to find a date and returns a datetime object if possible.
+    Returns None if no datetime object can be made.
+    """
     garbage = clean_raw_date_text(garbage)
+
+    era = get_era(garbage)
+    garbage = remove_era_text(garbage)
+
     value_list = garbage.split('|')
 
     date_and_time = dateparser.parse(value_list[0])
-    if date_and_time:
-        return date_and_time
+    now = datetime.datetime.utcnow()
+    if date_and_time and not (date_and_time.month is now.month and date_and_time.day is now.day):
+        return date.Date.from_datetime(date_and_time, era)
 
     # keep track of multiple dates if provided
     date_lists = []
@@ -80,6 +108,8 @@ def parse_date(garbage):
 
     date_string = ' '.join(date_lists[0])
     date_and_time = dateparser.parse(date_string)
+    if date_and_time:
+        return date.Date.from_datetime(date_and_time, era)
     return date_and_time
 
 
