@@ -73,6 +73,11 @@ def clean_raw_date_text(garbage):
     garbage = re.sub(r'\<[^>]*\>', '|', garbage).strip()
     return garbage
 
+def parse_year(garbage):
+    date = parse_date(garbage)
+    if not date: return
+    return date.year_only()
+
 def parse_date(garbage, test=False):
     """
     Takes text as input that is potentially full of useless information.
@@ -240,9 +245,11 @@ def start_search():
     print '\nNumber of questions:'
     print total_questions
 
+    '''
     print '-'*40
     for value in raw_text_values:
         print value
+    '''
 
 
 if __name__ == '__main__':

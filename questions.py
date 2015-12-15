@@ -9,15 +9,15 @@ categories = {
         'questions': {
             'birth_date': {
                 'question': 'In what year was {0} born?',
-                'parse_function': 'parse_pipes',
+                'parse_function': 'parse_year',
             },
             'death_date': {
                 'question': 'In what year did {0} die?',
-                'parse_function': 'parse_pipes',
+                'parse_function': 'parse_year',
             },
             'term_start': {
                 'question': 'When did {0} start their first term?',
-                'parse_function': 'parse_pipes',
+                'parse_function': 'parse_date',
             },
         },
     },
@@ -61,5 +61,6 @@ categories = {
             },
         },
     },
+
 }
 
