@@ -1,6 +1,7 @@
 
 import requests
 import locale
+import re
 
 import datetime
 import dateparser
@@ -46,30 +47,40 @@ def search_text(text, term):
     return value
 
 
-def parse_date(garbage):
+def clean_raw_date_text(garbage):
+    garbage = garbage.replace('{', '').strip()
+    garbage = garbage.replace('}', '').strip()
+    # remove certain types of parentheses and their contents
+    garbage = re.sub(r'\([^)]*\)', '|', garbage).strip()
+    garbage = re.sub(r'\<[^>]*\>', '|', garbage).strip()
+    return garbage
 
-    date_and_time = dateparser.parse(garbage)
+def parse_date(garbage):
+    garbage = clean_raw_date_text(garbage)
+    value_list = garbage.split('|')
+
+    date_and_time = dateparser.parse(value_list[0])
     if date_and_time:
         return date_and_time
 
-    garbage = garbage.replace('{', '')
-    garbage = garbage.replace('}', '')
-
-    value_list = garbage.split('|')
+    # keep track of multiple dates if provided
+    date_lists = []
     date_list = []
+    date_lists.append(date_list)
     for value in value_list:
         try:
             number = int(value)
         except ValueError:
             continue
+
+        if len(date_list) >= 3:
+            date_list = []
+            date_lists.append(date_list)
         date_list.append(value)
 
-    date_string = ' '.join(date_list)
+    date_string = ' '.join(date_lists[0])
     date_and_time = dateparser.parse(date_string)
     return date_and_time
-
-
-    return dateparser.parse(garbage)
 
 
 def parse_pipes(value):
