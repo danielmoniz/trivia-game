@@ -2,9 +2,11 @@
 import requests
 import locale
 
+import datetime
+import dateparser
+
 import questions
 
-total_questions = 0
 bad_searches = []
 empty_entities = []
 
@@ -32,8 +34,8 @@ def query_wikipedia(entity):
 def search_text(text, term):
     """
     Find the value of a given key in Wikipedia text.
-    Does this by counting characters until key is found, then grabbing data 
-    after the equals and cleaning up.
+    Does this by counting characters until key is found, then narrowing down
+    the relevant data and cleaning up.
     """
     term_position = text.find(term)
     equals_position = text[term_position:].find('=')
@@ -42,6 +44,32 @@ def search_text(text, term):
     value = text[term_position + equals_position + 1 : term_position + end_position]
     value = value.strip()
     return value
+
+
+def parse_date(garbage):
+
+    date_and_time = dateparser.parse(garbage)
+    if date_and_time:
+        return date_and_time
+
+    garbage = garbage.replace('{', '')
+    garbage = garbage.replace('}', '')
+
+    value_list = garbage.split('|')
+    date_list = []
+    for value in value_list:
+        try:
+            number = int(value)
+        except ValueError:
+            continue
+        date_list.append(value)
+
+    date_string = ' '.join(date_list)
+    date_and_time = dateparser.parse(date_string)
+    return date_and_time
+
+
+    return dateparser.parse(garbage)
 
 
 def parse_pipes(value):
@@ -81,12 +109,14 @@ def parse_population(value):
 
 
 def metres(value):
+    if isinstance(value, basestring) and value[-1] == 'm':
+        return value
     return "{0}m".format(value)
 
 
 def parse_elevation(value):
     elevation = prettify_number(value)
-    return elevation + 'm'
+    return metres(elevation)
 
 
 def parse_answer(raw_answer, question_info):
@@ -119,10 +149,14 @@ def print_card(question_data, entity):
     print question_data['answer']
 
 
+
+raw_text_values = [] # test code
+
 def generate_answers(text, category_info, entity):
     num_entity_questions = 0
     for search_term, question_data in category_info['questions'].iteritems():
         raw_answer = search_text(text, search_term)
+        raw_text_values.append(raw_answer)
         answer = parse_answer(raw_answer, question_data)
         if not answer:
             continue
@@ -132,37 +166,44 @@ def generate_answers(text, category_info, entity):
     return num_entity_questions
 
 
-answers = {}
+def start_search():
+    total_questions = 0
+    for category, category_info in questions.categories.iteritems():
+        with open(category_info['file'], 'r') as f:
+            entities = f.readlines()
 
-for category, category_info in questions.categories.iteritems():
-    with open(category_info['file'], 'r') as f:
-        entities = f.readlines()
+        for entity in entities:
+            entity = entity.strip()
+            # Use only the first comma-separated chunk of the entity to search 
+            searchable_entity = entity.split(',')[0].strip()
 
-    for entity in entities:
-        entity = entity.strip()
-        # Use only the first comma-separated chunk of the entity to search 
-        searchable_entity = entity.split(',')[0].strip()
+            text = query_wikipedia(searchable_entity)
+            if not text:
+                continue
+            num_entity_questions = generate_answers(text, category_info, entity)
+            total_questions += num_entity_questions
 
-        text = query_wikipedia(searchable_entity)
-        if not text:
-            continue
-        num_entity_questions = generate_answers(text, category_info, entity)
-        total_questions += num_entity_questions
-
-        if not num_entity_questions:
-            empty_entities.append(entity)
-
-
-print '\nBad searches: --------------'
-for search in bad_searches:
-    print search
-
-print '\nEmpty entities: --------------'
-for entity in empty_entities:
-    print entity
-
-print '\nNumber of questions:'
-print total_questions
+            if not num_entity_questions:
+                empty_entities.append(entity)
 
 
+    print '\nBad searches: --------------'
+    for search in bad_searches:
+        print search
+
+    print '\nEmpty entities: --------------'
+    for entity in empty_entities:
+        print entity
+
+
+    print '\nNumber of questions:'
+    print total_questions
+
+    print '-'*40
+    for value in raw_text_values:
+        print value
+
+
+if __name__ == '__main__':
+    start_search()
 
